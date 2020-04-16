@@ -1,2 +1,2 @@
 # Android-Camera2
-# Android-Camera2
+Starting from Android 5.0, Google introduced a new set of camera framework Camera2 (android.hardware.camera2) and abandoned the old camera framework Camera1 (android.hardware.Camera). In terms of API architecture, Camera2 is very different from the previous Camera. APP and the underlying Camera can be imagined to be connected by pipelines. This Demo is to obtain image data in real time through Camera2.
