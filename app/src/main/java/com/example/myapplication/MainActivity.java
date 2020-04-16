@@ -159,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
         if (null != mImageReader) {
             mImageReader.close();
             mImageReader = null;
+            
         }
     }
 
