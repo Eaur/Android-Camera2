@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="open_camera">打开摄像头</string>
+    <string name="open_permission">请先开启对应的权限管理</string>
+</resources>
