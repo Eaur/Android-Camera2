@@ -311,7 +311,6 @@ public class MainActivity extends AppCompatActivity {
             final CaptureRequest.Builder mCaptureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             //获取屏幕方向
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
-
             mCaptureBuilder.addTarget(mPreviewSurface);
             mCaptureBuilder.addTarget(mImageReader.getSurface());
 
