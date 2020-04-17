@@ -50,9 +50,7 @@ import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG_PREVIEW = "预览";
-    public static final int PERMISSION_REQ_ID = 21;
-    //请求权限的集合
-    public static final String[] REQUEST_PERMISSION = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO};
+
     @BindView(R.id.takePicture)
     Button takePicture;
     //相机设备，java代码中代表Camera的对象，可以关闭相机，向相机硬件端发出请求等等。
@@ -76,11 +74,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         initView();
         ButterKnife.bind(this);
-        //申请动态权限
-        if (checkSelfPermission(REQUEST_PERMISSION[0], PERMISSION_REQ_ID) &&
-                checkSelfPermission(REQUEST_PERMISSION[1], PERMISSION_REQ_ID) &&
-                checkSelfPermission(REQUEST_PERMISSION[2], PERMISSION_REQ_ID)) {
-        }
 
         TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
             @Override
@@ -358,13 +351,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private boolean checkSelfPermission(String permission, int request_code) {
-        //判断是否有权限
-        if (ContextCompat.checkSelfPermission(MainActivity.this, permission) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this, REQUEST_PERMISSION, request_code);
-        }
-        return true;
-    }
+
 
 
     private static final SparseIntArray ORIENTATION = new SparseIntArray();
