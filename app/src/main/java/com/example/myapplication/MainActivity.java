@@ -1,10 +1,8 @@
 package com.example.myapplication;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.RectF;
@@ -46,9 +44,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.logging.Handler;
-
-import javax.crypto.Mac;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -62,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     Button takePicture;
     //相机设备，java代码中代表Camera的对象，可以关闭相机，向相机硬件端发出请求等等。
     protected CameraDevice mCameraDevice;
+    @BindView(R.id.savePicture)
+    Button savePicture;
     //预览请求的Builder
     private Surface mPreviewSurface;
     private Size mPreviewSize;
@@ -72,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private TextureView textureView;
     private CaptureRequest.Builder mPreviewRequestBuilder;
     private CaptureRequest mPreviewRequest;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,12 +110,12 @@ public class MainActivity extends AppCompatActivity {
         textureView.setSurfaceTextureListener(textureListener);
 
 
-//        takePicture.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                capture();
-//            }
-//        });
+        takePicture.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                capture();
+            }
+        });
     }
 
     private void initView() {
@@ -132,8 +130,9 @@ public class MainActivity extends AppCompatActivity {
             // 遍历所有摄像头
             for (String cameraId : manager.getCameraIdList()) {
                 CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+                characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
                 // 默认打开后置摄像头 - 忽略前置摄像头
-                if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT){
+                if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
                 // 获取StreamConfigurationMap，它是管理摄像头支持的所有输出格式和尺寸
@@ -159,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
         if (null != mImageReader) {
             mImageReader.close();
             mImageReader = null;
-            
+
         }
     }
 
@@ -168,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
         //检查权限
         try {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(MainActivity.this,"请检查权限是否打开",Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "请检查权限是否打开", Toast.LENGTH_LONG).show();
                 return;
             }
             //打开相机，第一个参数指示打开哪个摄像头，第二个参数stateCallback为相机的状态回调接口，第三个参数用来确定Callback在哪个线程执行，为null的话就在当前线程执行
@@ -256,18 +255,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private void setupImageReader() {
 //      前三个参数分别是需要的尺寸和格式，最后一个参数代表每次最多获取几帧数据
-        mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.JPEG, 1);
+        mImageReader = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.YUV_420_888, 1);
 //      监听ImageReader的事件，当有图像流数据可用时会回调onImageAvailable方法，它的参数就是预览帧数据，可以对这帧数据进行处理
         mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
-                Log.e("LEE", "onImageAvailable: ");
+
+                //新的images通过ImageReader的surface发送给ImageReader，类似一个队列，需要通过acquireLatestImage()或者acquireNextImage()方法取出Image
                 Image image = reader.acquireLatestImage();
                 // 开启线程异步保存图片
                 new Thread(new ImageSaver(image)).start();
+                Log.e("LEE", "onImageAvailable: ");
             }
         }, null);
     }
@@ -307,23 +307,24 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void capture() {
+        if (mCameraDevice == null){
+            return;
+        }
         try {
+            Log.e("LEE", "capture: ");
             //首先我们创建请求拍照的CaptureRequest
             final CaptureRequest.Builder mCaptureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             //获取屏幕方向
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             mCaptureBuilder.addTarget(mPreviewSurface);
             mCaptureBuilder.addTarget(mImageReader.getSurface());
-
             //设置拍照方向
             mCaptureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATION.get(rotation));
-
             //停止预览
             mCaptureSession.stopRepeating();
 
             //开始拍照，然后回调上面的接口重启预览，因为mCaptureBuilder设置ImageReader作为target，所以会自动回调ImageReader的onImageAvailable()方法保存图片
             CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
-
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                     repeatPreview();
@@ -334,7 +335,11 @@ public class MainActivity extends AppCompatActivity {
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
+
+
     }
+
+
 
 
     private CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
@@ -346,6 +351,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
             super.onCaptureCompleted(session, request, result);
+
+            Log.e("LEE", "onCaptureCompleted: 11" + result);
+
+
         }
     };
 
@@ -356,7 +365,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     }
-
 
 
     private static final SparseIntArray ORIENTATION = new SparseIntArray();
